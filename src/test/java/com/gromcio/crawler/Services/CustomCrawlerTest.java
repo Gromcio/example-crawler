@@ -6,6 +6,7 @@ import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.AdditionalMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,13 +31,18 @@ class CustomCrawlerTest {
         Document mockedDocument = Jsoup.parse(FileUtils.readFileToString(mockDocumentFile, Charset.defaultCharset()));
 
         Mockito.when(loader.getDocumentForUrl(Mockito.eq(url))).thenReturn(mockedDocument);
+        Mockito.when(loader.getDocumentForUrl(AdditionalMatchers.not(Mockito.eq(url)))).thenReturn(new Document(""));
 
         CustomCrawler crawler = new CustomCrawler(1, loader);
         Report report = crawler.crawl(uri);
 
         Assert.isTrue(report.getStartingPoint().equals(url), "Report doesn't start at defined uri");
-        Assert.isTrue(report.getPages().size() > 0, "Didn't add any visited pages");
-        VisitedPage page = report.getPages().iterator().next();
+        Assert.isTrue(report.getPages().size() == 3, "Didn't add all visited pages");
+        VisitedPage page = report.getPages()
+                .stream()
+                .filter(p -> p.getUrl().equals(url))
+                .findFirst()
+                .get();
 
         Assert.isTrue(page.getUrl().equals(url), "Wrong url for processed report page");
         Assert.isTrue(page.getLocalLinks().size() == 2, "Didnt find all local links");
